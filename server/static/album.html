@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>思い出アルバム</title>
+<style>
+  :root { --bg:#14121a; --ink:#2b2833; --paper:#f4efe6; --silver:#a99fc4; --muted:#9a94a8;
+          --w1:#8fa7c9; --w2:#e0a458; --w3:#d9583b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:#e8e4ef; font-family:"Yu Gothic","Meiryo",sans-serif; }
+  header { display:flex; align-items:baseline; gap:12px; padding:18px 16px 6px; max-width:760px; margin:0 auto; }
+  h1 { font-size:20px; margin:0; font-weight:600; letter-spacing:.08em; }
+  header a { color:var(--silver); font-size:13px; margin-left:auto; text-decoration:none; }
+  .note { max-width:760px; margin:0 auto; padding:0 16px 8px; color:var(--muted); font-size:13px; }
+  section { max-width:760px; margin:0 auto; padding:8px 16px 16px; }
+  h2 { font-size:14px; font-weight:600; color:var(--silver); border-bottom:1px solid #2e2a3a; padding-bottom:6px; margin:14px 0 12px; }
+  .card { background:var(--paper); color:var(--ink); border-radius:4px; padding:30px 14px 10px; margin:0 0 12px; overflow:hidden;
+          border-right:8px solid #cfc8bb; box-shadow:0 1px 0 #0006; position:relative; }
+  .card.w1 { border-right-color:var(--w1); } .card.w2 { border-right-color:var(--w2); } .card.w3 { border-right-color:var(--w3); }
+  .card::before { content:""; position:absolute; left:0; right:0; top:0; height:20px; background:url(/assets/album/card_edge.png) repeat-x left center / auto 100%; image-rendering:pixelated; }
+  .card::after { content:""; position:absolute; left:0; top:0; width:52px; height:52px; background:url(/assets/album/card_corner.png) no-repeat left top / contain; image-rendering:pixelated; }
+  .card.dropped { opacity:.55; }
+  .date { font-size:12px; color:#6b6577; padding-left:26px; }
+  .scene { margin:4px 0 2px; font-size:15px; }
+  .line { margin:4px 0 6px; font-size:17px; font-weight:600; color:#4a3f6b; }
+  .meta { font-size:12px; color:#7d7789; display:flex; flex-wrap:wrap; gap:4px 10px; align-items:center; }
+  .meta .badge { background:#e6dfd2; border-radius:3px; padding:0 6px; }
+  .actions { margin-top:8px; display:flex; gap:8px; }
+  button { font:inherit; font-size:13px; border:1px solid #b9b0c9; background:#fff; color:#4a3f6b; border-radius:4px; padding:4px 12px; cursor:pointer; }
+  button.keep { background:#4a3f6b; color:#fff; border-color:#4a3f6b; }
+  .empty { color:var(--muted); font-size:13px; padding:4px 0 8px; }
+</style>
+</head>
+<body>
+<header><h1>思い出アルバム</h1><a href="/">← 篝火へ</a></header>
+<p class="note">札の右端の色は温度です(青=静か / 橙=ふつう / 赤=熱い)。確定は「残す」を押した札だけ。</p>
+<section>
+  <h2>残した思い出 <span id="n-confirmed"></span></h2><div id="confirmed"></div>
+  <h2>候補 <span id="n-candidate"></span></h2><div id="candidate"></div>
+  <h2>外したもの <span id="n-dropped"></span></h2><div id="dropped"></div>
+</section>
+<script>
+const WARM = {1:"静か", 2:"ふつう", 3:"熱い"};
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+async function post(body){
+  const r = await fetch("/api/album", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  if(!r.ok) alert("保存できませんでした"); await load();
+}
+function card(e){
+  const w = e.warmth ? " w"+e.warmth : "";
+  const src = (e.sources||[]).map(n=>"#"+n).join(" ");
+  const btn = e.status==="candidate"
+    ? '<button class="keep" data-act="keep">残す</button><button data-act="drop">外す</button>'
+    : '<button data-act="reset">候補に戻す</button>';
+  return '<div class="card '+e.status+w+'" data-id="'+esc(e.id)+'">'
+    + '<div class="date">'+esc(e.date)+'</div>'
+    + '<div class="scene">'+esc(e.scene)+'</div>'
+    + '<div class="line">「'+esc(e.line)+'」</div>'
+    + '<div class="meta">'
+    + (e.warmth ? '<span class="badge">温度: '+WARM[e.warmth]+'</span>' : '')
+    + (src ? '<span>元の発言 '+esc(src)+'</span>' : '')
+    + (e.proposer ? '<span>出した人: '+esc(e.proposer)+'</span>' : '')
+    + (e.mark ? '<span class="badge">印: '+esc(e.mark)+'</span>' : '')
+    + '</div><div class="actions">'+btn+'</div></div>';
+}
+async function load(){
+  const d = await (await fetch("/api/album")).json();
+  for(const st of ["confirmed","candidate","dropped"]){
+    const list = d.entries.filter(e=>e.status===st);
+    document.getElementById(st).innerHTML = list.length ? list.map(card).join("") : '<div class="empty">まだありません</div>';
+    document.getElementById("n-"+st).textContent = "("+list.length+")";
+  }
+}
+document.addEventListener("click", ev=>{
+  const b = ev.target.closest("button[data-act]"); if(!b) return;
+  const id = b.closest(".card").dataset.id, act = b.dataset.act;
+  const mark = act==="keep" ? "一覧の残すボタン" : act==="drop" ? "一覧の外すボタン" : "";
+  post({action:"decide", id, decision:act, mark});
+});
+load();
+</script>
+</body>
+</html>

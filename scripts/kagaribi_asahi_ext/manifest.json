@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "篝火 朝日・エリシアブリッジ",
+  "version": "0.2.0",
+  "description": "篝火の共通ログとChatGPT「ちいさなかがり火」スレッドをつなぐ(夜一を経由しない)。127.0.0.1の篝火だけに接続する。",
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:8765/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/c/6ae3402d-49a0-83ee-9876-e0013df6cadd*"
+      ],
+      "js": [
+        "lib.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://claude.ai/chat/82f370b8-2458-4091-aae5-f5653476c8a0*"
+      ],
+      "js": [
+        "erisia.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

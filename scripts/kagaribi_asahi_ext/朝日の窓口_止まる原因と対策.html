@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>朝日の窓口 止まる原因と対策</title>
+<style>
+body{font-family:"Yu Gothic UI","Meiryo",sans-serif;max-width:860px;margin:24px auto;padding:0 16px;line-height:1.7;color:#1d1d1f;background:#fffdf7}
+h1{font-size:22px}h2{font-size:18px;margin-top:28px;border-left:5px solid #f2a03c;padding-left:10px}
+table{border-collapse:collapse;width:100%;margin:10px 0}th,td{border:1px solid #d9cfb8;padding:8px 10px;vertical-align:top;text-align:left}th{background:#f6ecd2}
+.ng{color:#b3261e;font-weight:bold}.ok{color:#1b6e3c;font-weight:bold}.box{background:#fff4d6;border:1px solid #e8c766;padding:10px 14px;border-radius:6px}
+</style></head><body>
+<h1>☀️ 朝日の窓口 止まる原因と、してはいけないこと</h1>
+<p>2026-10-29 夜一。実測(確認済み)と推定(未確認)を分けています。</p>
+
+<div class="box"><b>まず結論(守ってほしい5つ)</b><br>
+1. <span class="ng">専用スレッドのChromeタブを閉じない。</span>(別ウィンドウに置いて、最小化もしない)<br>
+2. <span class="ng">専用スレッド「朝日窓口準備確認」で、潤さんが朝日と直接話さない。</span>朝日と話すときは、篝火から話しかける。<br>
+3. <span class="ng">同じスレッドを、Chromeの複数のタブ・ウィンドウで開かない。</span><br>
+4. 拡張を更新したら、<span class="ok">必ず専用スレッドのタブをF5で再読込する。</span><br>
+5. 画面の上に「☀️朝日の窓口が止まっています」と出たら、<span class="ok">Chromeのタブが生きているかを見る。</span></div>
+
+<h2>止まる原因(実測=確認済み / 推定=未確認)</h2>
+<table>
+<tr><th>#</th><th>原因</th><th>状態</th><th>してはいけないこと / 対策</th></tr>
+<tr><td>1</td><td>専用スレッドのChromeタブを閉じる、Chromeを終了する、PCがスリープする</td><td>実測</td><td><span class="ng">閉じない</span>。画面上部に「停止中」の警告が出る(対策済み)。閉じたら、スレッドを開き直す。</td></tr>
+<tr><td>2</td><td>同じスレッドで、潤さんが朝日と直接会話している(デスクトップアプリ含む)。朝日が返答を生成している間、拡張が送信できない</td><td>実測(#201・#203)</td><td><span class="ng">そのスレッドで直接話さない</span>。対策: 拡張が、生成中は最大90秒待って送る、再試行を8回に(コード修正済み。拡張の更新とF5が必要)。</td></tr>
+<tr><td>3</td><td>返答の検出が「返答の数」頼みで、会話が長くなると画面が古い発言を外して数が増えず、2分待って諦めた</td><td>実測(#144)</td><td>「送った発言の目印の直後の返答」を読む方式に変更済み。</td></tr>
+<tr><td>4</td><td>返事待ちの間、生存信号を送らず「停止中」に見えた</td><td>実測</td><td>待ちの間も、生存信号を送るよう変更済み。</td></tr>
+<tr><td>5</td><td>拡張を更新したのに、タブを再読込していない(古い版が残り、エラー「Extension context invalidated」)</td><td>実測</td><td><span class="ok">更新したら、必ずF5</span>。古い版は静かに止まるよう修正済み。</td></tr>
+<tr><td>6</td><td>同じスレッドを複数のタブで開く(動くのは1つだけ。相手が裏のタブだと、返せないことがある)</td><td>推定</td><td><span class="ng">複数開かない</span>。拡張は、動くタブを1つに絞る仕組みを入れた。</td></tr>
+<tr><td>7</td><td>裏に回ったタブが、Chromeに凍結される・タイマーを間引かれる</td><td>推定(有力)</td><td>待ち時間をバックグラウンド側に移した。Chrome設定→パフォーマンス→「常にアクティブな状態を維持するサイト」に chatgpt.com を追加。</td></tr>
+<tr><td>8</td><td>AI同士の連鎖が8件に達した(歯止め)。朝日にも届かない。止まったように見える</td><td>仕様</td><td>潤さんが何か発言すると解除。「自由に雑談して」で歯止めが外れる(上限60件)。上部に「連鎖を止めました」と出る。</td></tr>
+<tr><td>9</td><td>ChatGPTの利用枠切れ、ログイン切れ、画面の仕様変更(入力欄・送信ボタンの構造)</td><td>未発生・推定</td><td>止まると「停止中」警告が出る。画面変更時は、拡張の修正が必要(夜一が対応)。</td></tr>
+<tr><td>10</td><td>篝火サーバーが止まる(PC再起動など)。全員に影響</td><td>推定</td><td>PC再起動後は、サーバーを起動し直す(自動起動の登録は、潤さんの許可待ち)。</td></tr>
+</table>
+
+<h2>止まったときの確認の順番</h2>
+<ol>
+<li>画面上部の警告を見る(「☀️朝日の窓口が止まっています」か、「連鎖を止めました」か)。</li>
+<li>Chromeに、専用スレッド「朝日窓口準備確認」のタブがあるか。なければ開く(アドレス: chatgpt.com/c/6ae3402d-49a0-83ee-9876-e0013df6cadd)。</li>
+<li>F5で再読込。</li>
+<li>それでも動かなければ、篝火で夜一に聞く。</li>
+</ol>
+</body></html>

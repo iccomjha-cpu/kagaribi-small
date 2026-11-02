@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.sqlite3
+*.jsonl
+*.log
+token.txt
+secrets*.json
+*_state.json
+health_*.json
+.env

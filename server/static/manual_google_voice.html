@@ -1,0 +1,65 @@
+<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>声・音の手順書</title><style>body{margin:0;padding:10px;background:#1b1626;color:#f4efe2;font:15px/1.6 sans-serif}h1{font-size:18px}h2{font-size:16px;color:#f6c75a;margin:14px 0 4px}code{background:#2c2542;padding:1px 4px;border-radius:4px;font-size:12.5px;word-break:break-all}pre{background:#120e1c;padding:8px;border-radius:8px;overflow-x:auto;font-size:11.5px}pre code{background:none;padding:0;word-break:normal}ul,ol{padding-left:20px}</style><h1>Googleで声・音を作る手順書(美月・夜一 共用) 2026-10-31 夜一</h1>
+<p>出典: E:\YUMEMORI の文書(Google_AI_Studio_調査メモ / 連携の調査メモ / 制作ノウハウ_第1作まとめ / ★採用_ジングル案1_作り方)と、10/18〜19 の YUMEMORI 作業セッション(298a179e…jsonl)の実際の操作。〔実測〕=その作業で動いたこと。〔未確認〕=記録に無い・今回は確かめていない。</p>
+<h2>0. 担当の分け方(案)</h2>
+<ul>
+<li><strong>美月(ブラウザの機械)</strong>: 声(TTS)と、音(曲・ジングル)の担当(潤の決定 10/31)。声は AI Studio の画面で作って保存する(§1)。曲は、まず AI Studio の画面の音楽生成で試す(§2。画面に出るかは〔未確認〕)。</li>
+<li><strong>夜一(作業セッション)</strong>: 美月の画面で曲が作れないとき、API+スクリプトで曲を作って渡す(§2)。ffmpeg の後処理(§3)も夜一(美月の道具には ffmpeg が無い)。鍵を使う作業は夜一だけが行う(美月の道具では鍵ファイルを扱わない)。美月は、必要な後処理を夜一に依頼する。</li>
+<li>声の出来は AI は耳で聴けない。<strong>本人(潤)の評価に従う</strong>。出来上がったら、ファイルの場所を知らせて聴いてもらう。</li>
+</ul>
+<h2>1. 声(Gemini TTS)を画面で作る【美月】</h2>
+<ul>
+<li>場所: https://aistudio.google.com/generate-speech 〔実測〕。Chrome(ユーザーのログイン済み)で開く。画面の利用は、APIキーを選ばなければ無料。</li>
+<li>注意: <strong>無料枠の入力は Google の製品改善に使われる</strong>。機密・個人情報・子供が写る素材の情報は入れない。台詞だけなので問題なし。</li>
+<li>手順〔実測〕:</li>
+<li>「Create new dialog」(掛け合い)で、台詞を入れる。話者は 1 回に 2 人まで。</li>
+<li><strong>Style(演技指示)</strong>に、年齢・感情・語尾を書く(下の例)。</li>
+<li>右の <strong>Speaker settings</strong> で声を検索して選ぶ(例: Zephyr / Leda / Sola / Fola / Laomedeia / Elio)。</li>
+<li><strong>Run</strong>。Cookie の案内が Run を隠したら「同意しない」を選ぶ。</li>
+<li>下のダウンロードで WAV を保存。<strong>保存すると画面が最初に戻る</strong>ので、1 声ごとに作り直す。</li>
+<li>演技指示のコツ〔実測〕:</li>
+<li>年齢は<strong>数字で</strong>書く(「約4歳」)。「小さく・とても高く・甘く・ゆっくり・舌足らず」が効いた。</li>
+<li>語尾は「自然に下がり、上がらず、伸ばさない」と書くと安定した。</li>
+<li>例(ルネ・約6歳・驚き): 約6歳の元気な女の子、驚き。自然な日本語のアクセント。短く軽く。語尾は自然に下がり、上がらず、伸ばさない。</li>
+<li>例(コハク・約7歳): 約7歳の元気な男の子、あわてて心配。語尾は自然に下がる。</li>
+<li>笑い・間は <code>&lt;laugh&gt;</code> <code>&lt;short pause&gt;</code> などのタグ(英語のタグ推奨)。台詞は逐語の台本として読まれる。</li>
+<li>決まった声〔実測・本人評価〕: ルネ=パターンG(Zephyr+「幼く」の指示+後処理でピッチ+8%)。コハクは Elio(中くらい)+「約7歳の男の子」で代用。男の子の高めの声は無料の範囲で見つからず。</li>
+<li>保存先の約束: ダウンロード先に落ちた最新の WAV を、依頼で指定された場所へ<strong>コピーして名前を付ける</strong>(元は消さない)。</li>
+</ul>
+<h2>2. 曲・ジングルを Lyria で作る【美月が担当・画面で試す→無理なら夜一がAPIで作って渡す】</h2>
+<ul>
+<li>美月: AI Studio の画面(https://aistudio.google.com/)に音楽生成(Lyria)があるか確認し、あれば §1 と同じ要領で、下のプロンプトの型(英語・歌なし・時間ごとの流れ)を入れて保存する。画面に無い/作れないときは、その旨を結果に書いて夜一へ依頼する(未確認のことを、できたと書かない)。</li>
+<li>夜一(API の方法・実測 10/19):</li>
+<li>鍵: <code>E:\YUMEMORI\_keys\gemini_api_key.txt</code>(<strong>中身は読み上げない・ログや会話に出さない</strong>)。課金は従量で、本人の承認した少額の範囲(1 曲 約0.08ドル、30秒クリップ 約0.04ドル)。</li>
+<li>呼び方〔実測 10/19〕(Python・標準ライブラリのみ。<code>python -I</code> で実行):</li>
+</ul>
+<pre><code class="language-python">import json, urllib.request, base64
+k = open(r'E:\YUMEMORI\_keys\gemini_api_key.txt', encoding='utf-8-sig').read().strip()
+prompt = &quot;Instrumental only, no vocals. ... (英語。楽器・テンポ・[0:00 - 0:05] のように時間ごとの流れを書く)&quot;
+body = {&quot;model&quot;: &quot;lyria-3-clip-preview&quot;, &quot;input&quot;: prompt, &quot;response_format&quot;: {&quot;type&quot;: &quot;audio&quot;}}
+req = urllib.request.Request('https://generativelanguage.googleapis.com/v1beta/interactions',
+      data=json.dumps(body).encode(), headers={'x-goog-api-key': k, 'Content-Type': 'application/json'})
+r = json.load(urllib.request.urlopen(req, timeout=300))
+for s in r.get('steps', []):
+    if s.get('type') == 'model_output':
+        for c in s.get('content', []):
+            if c.get('type') == 'audio':
+                open(r'出力先.mp3', 'wb').write(base64.b64decode(c['data']))
+</code></pre>
+<ul>
+<li>コツ〔実測〕: 歌なし(<code>Instrumental only, no vocals</code>)を先頭に。<strong>長さの指定は無視され、約25〜30秒で出る</strong>。時間ごとの流れ <code>[0:00 - 0:05]</code> は効く。やさしい曲は、鈴・オルゴール・ハープ・ピチカートなど。</li>
+<li>採用ジングルの作り方は、E:\YUMEMORI\04_音\ジングル\★採用_ジングル案1_作り方.md(ffmpeg のフィルター値つき)。</li>
+</ul>
+<h2>3. 後処理(ffmpeg)【夜一】</h2>
+<ul>
+<li>ffmpeg は <code>imageio_ffmpeg.get_ffmpeg_exe()</code> を使う(別に入れなくてよい)〔実測〕。</li>
+<li><strong>AI Studio の WAV はヘッダーが不正</strong>なので、必ず作り直してから切り出す〔実測〕: <code>ffmpeg -y -i 元.wav -ac 1 -ar 24000 -c:a pcm_s16le 元_clean.wav</code></li>
+<li>台詞ごとの切り出しは、無音を検出して区切る(会話記録の一時スクリプト seg.py。<strong>保存されていない</strong>ため、必要なら作り直す)。</li>
+<li>ピッチ +8%: 動画づくりの一時スクリプト(mixvoice2.py)で実施。<strong>方法は保存されていない〔未確認〕</strong>。作り直すなら <code>asetrate=24000*1.08,aresample=24000</code> 等。</li>
+</ul>
+<h2>4. 無いもの・限界</h2>
+<ul>
+<li>TTS の API 呼び出しスクリプトは保存されていない(10/18 は画面操作で作った)。API でも TTS は呼べる(モデル <code>gemini-3.8-flash-tts</code>、出力 WAV 24kHz・モノラル、話者は 1 回 2 人まで)〔公式〕が、このセッションで動かした記録は無い。</li>
+<li>別に作った音声を動画(Veo など)の入力に渡す口は無い〔公式〕。</li>
+<li>子供向けでの Gemini の利用規約は〔未確認〕。YUMEMORI の公開前に確認が要る。</li>
+<li>費用・認証・外部送信が絡む操作は、潤に一言聞いてから行う。売買に関わることは行わない。</li>
+</ul>

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>篝火 v0.1</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- 4領域: 上部ヘッダー / 中央メインシーン / 右側共通ログ / 下部入力欄(美月の実装仕様表 KAGARIBI_v0.1_SPEC.md)。左サイドバー・メンバー一覧・手動時間帯切替・設定カードは置かない。 -->
+  <div class="app">
+    <header class="topbar">
+      <span class="subtitle">Team Room ｜ いつでも集まれる、もうひとつの場所</span>
+      <nav class="view-switcher" aria-label="画面切替">
+        <button type="button" data-view="scene">円卓</button>
+        <button type="button" data-view="split" aria-pressed="true">並べる</button>
+        <button type="button" data-view="history">履歴</button>
+      </nav>
+      <label class="ratio-control" title="円卓と履歴の表示比率">比率<input id="view-ratio" type="range" min="45" max="78" value="70" step="1"><output id="view-ratio-output">70:30</output></label>
+      <span id="asahi-warn" class="chainnote warn" hidden>☀️朝日の窓口が止まっています(ChromeのChatGPT専用スレッドのタブを確認)</span><span id="tasks" class="chainnote tasknote" hidden></span><span id="chain" class="chainnote" hidden></span><span id="status" class="status">接続中…</span>
+    </header>
+
+    <!-- 画像はレイヤー別パーツ: 空・遠景(.sky) / 舞台(.stage) / 4人(.actor .sprite) / 篝火(.fire .sheet) / 光(.glow .warm-light)。static/assets/manifest.json で差し替える(scene.js冒頭と assets/README.md)。名前・時刻などの文字は画像に焼き込まず、HTMLで描く。 -->
+    <section class="scene-area" aria-label="篝火を囲む4人">
+      <div class="scene-wrap">
+        <div class="sky" role="img" aria-label="夜の空と遠景"></div>
+        <div class="stars" aria-hidden="true"><i style="left:12%;top:9%"></i><i style="left:27%;top:16%;animation-delay:.7s"></i><i style="left:41%;top:7%;animation-delay:1.4s"></i><i style="left:58%;top:14%;animation-delay:2.1s"></i><i style="left:72%;top:8%;animation-delay:.3s"></i><i style="left:88%;top:22%;animation-delay:1.1s"></i></div>
+        <div class="stage" aria-hidden="true"></div>
+        <div class="glow" aria-hidden="true"></div>
+        <div class="fire" role="img" aria-label="小さな篝火"><div class="sheet"></div><i class="spark" style="left:40%;--dx:-110%"></i><i class="spark" style="left:50%;--dx:10%;animation-delay:.9s"></i><i class="spark" style="left:60%;--dx:110%;animation-delay:1.7s"></i></div>
+        <figure class="actor warm asahi" data-actor="asahi" style="--x:18%;--y:19%;--d:0s"><span class="bubble" aria-hidden="true"></span><div class="sprite"></div><figcaption class="tag"><strong>☀️ 朝日</strong><small>GPT Chat</small></figcaption></figure>
+        <figure class="actor warm hinata" data-actor="hinata" style="--x:39%;--y:16%;--d:.9s"><span class="bubble" aria-hidden="true"></span><div class="sprite"></div><figcaption class="tag"><strong>🌱 日向</strong><small>Codex</small></figcaption></figure>
+        <figure class="actor cool mizuki" data-actor="mizuki" style="--x:61%;--y:16%;--d:1.8s"><span class="bubble" aria-hidden="true"></span><div class="sprite"></div><figcaption class="tag"><strong>🌙 美月</strong><small>Claude Chat</small></figcaption></figure>
+        <figure class="actor cool yoichi" data-actor="yoichi" style="--x:84%;--y:19%;--d:2.7s"><span class="bubble" aria-hidden="true"></span><div class="sprite"></div><figcaption class="tag"><strong>⭐ 夜一</strong><small>Claude Code</small></figcaption></figure>
+        <div class="warm-light" aria-hidden="true"></div>
+        <section class="topic-card" aria-label="現在の議題">
+          <span>議題</span><strong id="topic-title">読み込み中…</strong><small id="topic-source">PocStore 読取専用</small>
+        </section>
+      </div>
+    </section>
+
+    <aside class="log-panel" aria-label="完全履歴">
+      <div class="log-head"><h2>会話ログ</h2><span id="count">0件</span><div class="log-tools"><h1>篝火</h1><time id="clock" class="clock" aria-label="現在時刻"></time><button type="button" id="open-settings" class="gear" aria-label="設定" title="設定">⚙</button></div></div>
+      <div id="pending-bar" class="pending-bar" hidden></div>
+      <div id="messages" class="messages" aria-live="polite"><p class="empty">まだ発言がありません。最初の薪をくべてください。</p></div>
+    </aside>
+
+    <form id="composer" class="composer">
+      <label class="to">宛先<span id="target-label">全員</span><select id="target" hidden><option value="">全員</option><option value="asahi">☀️朝日</option><option value="hinata">🌱日向</option><option value="mizuki">🌙美月</option><option value="yoichi">⭐夜一</option></select></label>
+      <div class="input-wrap"><div id="reply-banner" class="reply-banner" hidden><span></span><button type="button" id="clear-reply" aria-label="返信を解除">×</button></div><textarea id="body" rows="2" maxlength="4000" placeholder="篝火に話しかける…(送信者: 潤)" required></textarea></div>
+      <button class="send" type="submit">送る <span>↗</span></button>
+    </form>
+  </div>
+
+  <nav class="mobile-tabs" aria-label="画面切替">
+    <button type="button" data-view="scene" aria-pressed="true">会議室</button>
+    <button type="button" data-view="history">履歴</button>
+  </nav>
+
+  <!-- 設定: 常設は小さな歯車ボタンだけ。中身は必要時にモーダルで出す(v0.1は最小: ログの文字サイズ・アニメーションON/OFF)。 -->
+  <dialog id="settings" class="settings">
+    <form method="dialog">
+      <h3>設定</h3>
+      <fieldset><legend>ログの文字サイズ</legend>
+        <label><input type="radio" name="logsize" value="s"> 小</label>
+        <label><input type="radio" name="logsize" value="m" checked> 中</label>
+        <label><input type="radio" name="logsize" value="l"> 大</label>
+      </fieldset>
+      <label class="row"><input type="checkbox" id="anim-on" checked> アニメーション(揺れ・炎・星)</label>
+      <button value="close" class="close">閉じる</button>
+    </form>
+  </dialog>
+  <script src="/scene.js" defer></script>
+  <script src="/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,459 @@
+@import url("https://fonts.googleapis.com/css2?family=Yusei+Magic&family=Klee+One:wght@600&family=Shippori+Mincho:wght@600&family=DotGothic16&display=swap");
+:root{color-scheme:dark;--ink:#f7f0de;--muted:#a3a0b4;--panel:#12131f;--panel2:#171929;--line:#2b2c40;--bg:#070815;
+  --warm:#f6a64b;--cool:#78a8ff;--jun:#f7f0de;--asahi:#f6c75a;--hinata:#d49a6a;--mizuki:#9aa8e8;--yoichi:#4c73c9;
+  --log-font:15.5px;--main-ratio:8fr;--log-ratio:2fr;
+  --font:"DotGothic16","MS Gothic","Yu Gothic UI","Hiragino Sans",monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--font)}
+body{background:radial-gradient(ellipse at 50% -10%,#1a1d46 0,#090a18 55%,#050610 100%)}
+body[data-logsize="s"]{--log-font:13.5px}body[data-logsize="l"]{--log-font:18px}
+/* 4領域: 横 メイン80:ログ20 / 縦 ヘッダー8:本体80:入力12(後から --main-ratio / --log-ratio で調整できる) */
+.app{display:grid;height:100vh;grid-template-columns:var(--main-ratio) var(--log-ratio);grid-template-rows:minmax(40px,8vh) minmax(0,1fr) minmax(88px,12vh);grid-template-areas:"top top" "scene log" "composer composer";gap:4px;padding:4px;max-width:none;margin:0 auto}
+.topbar{grid-area:top;display:flex;align-items:center;gap:12px;padding:0 12px;background:var(--panel);border:2px solid var(--line);border-radius:6px}
+.topbar h1{margin:0;font-size:20px}.subtitle{font-size:11px;letter-spacing:.18em;color:var(--muted)}
+.view-switcher{display:flex;gap:4px;margin-left:8px}.view-switcher button,.mobile-tabs button{min-height:36px;background:#0d0e1a;color:var(--muted);border:1px solid var(--line);border-radius:4px;font:inherit;cursor:pointer;padding:4px 10px}.view-switcher button[aria-pressed="true"],.mobile-tabs button[aria-pressed="true"]{background:#303558;color:var(--ink);border-color:#6973b8}
+.ratio-control{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}.ratio-control input{width:90px}.ratio-control output{min-width:37px;font-variant-numeric:tabular-nums}
+.status{margin-left:auto;font-size:13px;color:#e58a6a}.status.online{color:#8fe3a0}
+.clock{font-size:15px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.gear{background:none;border:2px solid var(--line);border-radius:4px;color:var(--muted);font-size:17px;line-height:1;padding:3px 8px;cursor:pointer}.gear:hover{color:var(--ink);border-color:#4a4c6e}
+.scene-area{grid-area:scene;display:grid;place-items:center;min-height:0;min-width:0;background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:2px}
+.scene-wrap{position:relative;width:min(100%,calc((100vh - 20px)*16/9));aspect-ratio:16/9;border:3px solid #0a0b16;border-radius:4px;overflow:hidden;background:#070a1f}
+.scene-wrap::before{content:"";position:absolute;z-index:3;left:50%;top:64%;width:54%;height:25%;transform:translateX(-50%);border:clamp(5px,1vw,12px) solid rgba(91,62,42,.92);border-radius:50%;background:radial-gradient(ellipse,#38251c 0 48%,#17121a 51% 67%,transparent 69%);box-shadow:0 4px 0 #1a1110,0 0 24px rgba(255,157,68,.18)}
+.scene-wrap>div,.scene-wrap>figure{margin:0}
+.sky,.stage{position:absolute;inset:0;background-position:center;background-size:100% 100%;background-repeat:no-repeat;image-rendering:pixelated}
+.sky{z-index:0;background-image:var(--sky-image)}.stage{z-index:1;background-image:var(--stage-image)}
+.stars i{position:absolute;width:.45%;aspect-ratio:1;background:#fff6d8;animation:twinkle 3.2s steps(2,jump-none) infinite}
+.glow{position:absolute;z-index:2;left:50%;top:60%;width:44%;height:44%;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 60%,rgba(255,150,60,.30),transparent 66%);mix-blend-mode:screen;animation:glow 4.2s ease-in-out infinite alternate;pointer-events:none}
+.warm-light{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 90%,rgba(255,176,90,.22),transparent 52%);mix-blend-mode:soft-light;animation:glow 4.2s ease-in-out infinite alternate;pointer-events:none}
+.fire{position:absolute;z-index:6;left:50%;top:67%;width:10.5%;aspect-ratio:1;transform:translateX(-50%)}
+.fire .sheet{width:100%;height:100%;background:var(--fire-image) 0 0/calc(var(--fire-frames,3)*100%) 100% no-repeat;image-rendering:pixelated;animation:flame .45s steps(var(--fire-frames,3),jump-none) infinite}
+.spark{position:absolute;top:30%;width:3.4%;aspect-ratio:1;background:#ffd24a;opacity:0;animation:spark 2.4s linear infinite}
+.actor{position:absolute;z-index:5;left:var(--x);bottom:var(--y,12.96%);width:12.5%;transform:translateX(-50%)}
+.actor .sprite{width:100%;aspect-ratio:24/28;background:var(--sprite-image) center/100% 100% no-repeat;image-rendering:pixelated;animation:sway 3.6s steps(2,jump-none) infinite;animation-delay:var(--d,0s)}
+.actor.talking .sprite{animation:bounce .42s steps(2,jump-none) infinite}
+.bubble{position:absolute;left:50%;top:-16%;transform:translateX(-50%);max-width:240%;padding:1px 8px;border-radius:3px;background:#fff6d8;color:#2b2438;font-size:clamp(10px,1.2vw,15px);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0}
+.actor.talking .bubble{opacity:1}
+.actor[data-state="heard"] .sprite{animation:nod .9s steps(3,jump-none) 1}
+.actor[data-state="thinking"] .bubble{opacity:1}
+.actor[data-state="working"] .tag{outline:2px dashed #ffd24a;outline-offset:2px;animation:glow 1s steps(2,jump-none) infinite alternate}
+.actor[data-state="working"] .tag small::after{content:" ・作業中"}
+.actor[data-alive="false"] .sprite{filter:grayscale(1) opacity(.45)}
+.actor[data-alive="false"] .tag small::after{content:" ・停止中"}
+.actor[data-state="idle"][data-alive="true"][data-evidence="never"] .tag small::after,.actor[data-state="idle"][data-alive="true"][data-evidence="ok_old"] .tag small::after{content:" ・待機(未確認)"}
+@keyframes nod{0%{transform:translateY(0)}50%{transform:translateY(6%)}100%{transform:translateY(0)}}
+body.no-anim .actor[data-state] .sprite,body.no-anim .actor[data-state] .tag{animation:none}
+.tag{position:absolute;top:100%;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;padding:2px 7px;border:2px solid currentColor;border-radius:3px;background:rgba(9,10,24,.84);line-height:1.15;white-space:nowrap}
+.tag strong{font-size:clamp(11px,1.45vw,16px);color:var(--ink)}
+.tag small{font-size:clamp(8px,.9vw,11px);color:var(--muted)}
+.actor.asahi .tag{color:var(--asahi)}.actor.hinata .tag{color:var(--hinata)}.actor.mizuki .tag{color:var(--mizuki)}.actor.yoichi .tag{color:var(--yoichi)}
+.topic-card{position:absolute;z-index:8;top:4%;left:50%;transform:translateX(-50%);width:min(70%,620px);padding:6px 12px;text-align:center;background:rgba(9,10,24,.84);border:2px solid rgba(255,210,120,.45);border-radius:6px;box-shadow:0 5px 20px rgba(0,0,0,.35)}.topic-card span,.topic-card small{display:block;color:#e7b86d;font-size:clamp(8px,.8vw,11px);letter-spacing:.12em}.topic-card strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,1.4vw,18px);margin:2px 0}.topic-card small{color:var(--muted);letter-spacing:0}
+@keyframes flame{from{background-position:0 0}to{background-position:100% 0}}
+@keyframes sway{from{transform:translateY(0)}to{transform:translateY(-2.5%)}}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-9%)}}
+@keyframes twinkle{from{opacity:1}to{opacity:.15}}
+@keyframes glow{from{opacity:.75}to{opacity:1}}
+@keyframes spark{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}100%{opacity:0;transform:translate(var(--dx,120%),-1200%)}}
+body.no-anim *,body.no-anim *::before,body.no-anim *::after{animation:none!important}
+.log-panel{grid-area:log;height:0;min-height:100%;background:var(--panel);border:2px solid var(--line);border-radius:6px;display:flex;flex-direction:column}
+body[data-view="scene"] .app{grid-template-columns:1fr;grid-template-areas:"top" "scene" "composer"}body[data-view="scene"] .log-panel{display:none}body[data-view="history"] .app{grid-template-columns:1fr;grid-template-areas:"top" "log" "composer"}body[data-view="history"] .scene-area{display:none}
+.log-head{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:2px solid var(--line)}
+.log-head h2{margin:0;font-size:17px}.log-head #count{font-size:13px;color:var(--muted)}
+.log-tools{display:flex;align-items:center;gap:10px;margin-left:auto}.log-tools h1{margin:0;font-size:17px;white-space:nowrap}.log-head .chainnote{display:none}
+.messages{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+.empty{color:var(--muted);font-size:14px}
+.message{background:var(--panel2);border:1px solid var(--line);border-left:5px solid var(--jun);border-radius:4px;padding:6px 10px 7px}
+.message[data-actor="asahi"]{border-left-color:var(--asahi)}.message[data-actor="hinata"]{border-left-color:var(--hinata)}
+.message[data-actor="mizuki"]{border-left-color:var(--mizuki)}.message[data-actor="yoichi"]{border-left-color:var(--yoichi)}
+.message .meta{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;font-size:12.5px;color:var(--muted)}
+.message .avatar{font-size:15px}.message .name{color:var(--ink);font-size:15px;font-weight:700}
+.message[data-actor="asahi"] .name{color:var(--asahi)}.message[data-actor="hinata"] .name{color:var(--hinata)}.message[data-actor="mizuki"] .name{color:var(--mizuki)}.message[data-actor="yoichi"] .name{color:#7fa2ee}
+.message .route{color:#cfc9e0}
+.message .source{border:1px solid var(--line);border-radius:3px;padding:0 5px;font-size:11px}
+.message .time{margin-left:auto;font-variant-numeric:tabular-nums}
+.message p{margin:4px 0 3px;font-size:var(--log-font);line-height:1.65;white-space:pre-wrap;word-break:break-word;color:#f4efe2}
+.reply-context{margin-top:5px;padding:3px 8px;border-left:3px solid var(--line);background:#0e0f1b;color:var(--muted);font-size:12.5px;border-radius:2px}
+.reply-button{background:none;border:0;color:var(--muted);font:inherit;font-size:12px;cursor:pointer;padding:1px 0}.reply-button:hover{color:var(--ink)}
+.composer{grid-area:composer;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:stretch;background:var(--panel);border:2px solid var(--line);border-radius:6px;padding:8px 12px}
+.composer .to{display:flex;flex-direction:column;justify-content:center;gap:3px;font-size:12px;color:var(--muted)}
+select,textarea{background:#0d0e1a;color:var(--ink);border:2px solid var(--line);border-radius:4px;font:inherit;font-size:15px;padding:7px 9px}
+.input-wrap{display:flex;flex-direction:column;min-width:0}
+textarea{width:100%;flex:1;resize:none;min-height:44px;line-height:1.5}
+.reply-banner[hidden]{display:none}
+.reply-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;padding:2px 8px;background:#1d2140;border-radius:3px;font-size:12.5px;color:#b9c4ff}
+.reply-banner button{background:none;border:0;color:inherit;cursor:pointer;font-size:16px}
+.send{background:#e2532c;border:2px solid #ffb48a;color:#fff;font:inherit;font-size:16px;font-weight:700;padding:0 22px;border-radius:4px;cursor:pointer}
+.send:hover{background:#f06a3e}.send:disabled{opacity:.55;cursor:wait}
+:focus-visible{outline:3px solid #ffd24a;outline-offset:2px}
+.messages::-webkit-scrollbar{width:10px}.messages::-webkit-scrollbar-thumb{background:#2f3150;border-radius:5px}
+.settings{background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:6px;padding:16px 20px;font-family:var(--font)}
+.settings::backdrop{background:rgba(3,4,12,.7)}
+.settings h3{margin:0 0 10px}.settings fieldset{border:1px solid var(--line);border-radius:4px;margin:0 0 10px}
+.settings label{margin-right:12px}.settings .row{display:block;margin:8px 0}
+.settings .close{margin-top:8px;background:#2a2d4a;color:var(--ink);border:2px solid var(--line);border-radius:4px;padding:6px 14px;font:inherit;cursor:pointer}
+.mobile-tabs{display:none}
+@media (max-width:900px){body{padding-bottom:54px}.app,.app:where(body[data-view="scene"] *),.app:where(body[data-view="history"] *){height:auto;min-height:calc(100vh - 54px);grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"top" "scene" "composer"}.subtitle,.view-switcher,.ratio-control{display:none}.topbar{min-height:48px}.scene-wrap{width:100%}.log-panel{height:auto;min-height:320px;max-height:none}.composer{grid-template-columns:1fr}.mobile-tabs{position:fixed;z-index:50;display:grid;grid-template-columns:1fr 1fr;left:0;right:0;bottom:0;height:54px;padding:5px 8px;background:#080914;border-top:2px solid var(--line)}.mobile-tabs button{min-height:44px}body[data-view="history"] .app{grid-template-areas:"top" "log" "composer"}body[data-view="history"] .log-panel{display:flex}body[data-view="history"] .scene-area{display:none}body[data-view="scene"] .app{grid-template-areas:"top" "scene" "composer"}body[data-view="scene"] .log-panel{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.chainnote{margin-left:auto;padding:2px 8px;border:1px solid #ffd24a;border-radius:3px;color:#ffd24a;font-size:12px;white-space:nowrap}
+.chainnote.warn{border-color:#ff8a4a;color:#ff8a4a;margin-left:12px}
+/* 高解像度の画像(manifest の "smooth": true)用: なめらかに表示し、仮の舞台の石の輪は消す */
+.scene-wrap.smooth .sky,.scene-wrap.smooth .stage,.scene-wrap.smooth .actor .sprite{image-rendering:pixelated}
+.scene-wrap.smooth .sky{background-size:100% 100%}
+.scene-wrap.smooth::before{display:none}
+/* 高解像度の背景では、4人を焚き火の近くに寄せる */
+.scene-wrap.smooth .asahi{--x:31%}.scene-wrap.smooth .hinata{--x:42%}.scene-wrap.smooth .mizuki{--x:58%}.scene-wrap.smooth .yoichi{--x:69%}
+/* モック基準: 4人を大きく、吹き出しは直近の発言を常時・色つきの名札つきで出す */
+.scene-wrap.smooth .actor{width:18.75%}
+.scene-wrap.smooth .bubble{opacity:1;top:auto;bottom:104%;left:50%;width:max-content;max-width:165%;white-space:normal;text-align:left;overflow:visible;text-overflow:clip;padding:15px 10px 7px;border-radius:10px;background:#fff6e0;color:#2b2438;font-size:clamp(10px,1.1vw,15px);line-height:1.35;box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.scene-wrap.smooth .bubble:empty{display:none}
+.scene-wrap.smooth .bubble::before{content:attr(data-name);position:absolute;left:6px;top:-9px;padding:0 10px;border-radius:10px;color:#fff;font-weight:700;font-size:.9em;background:var(--c,#888)}
+.actor.asahi .bubble{--c:#f08a2c}.actor.hinata .bubble{--c:#4f9d4a}.actor.mizuki .bubble{--c:#8a63c8}.actor.yoichi .bubble{--c:#3f6fd1}
+/* 吹き出しは、隣と重ならない幅にして、最大3行に収める */
+.scene-wrap.smooth .bubble{max-width:118%;min-width:70%;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;font-size:clamp(9px,.95vw,13px);padding:14px 8px 6px}
+.scene-wrap.smooth .bubble::before{top:-1px;left:6px}
+.actor.hinata .bubble,.actor.mizuki .bubble{bottom:112%}
+.chainnote.tasknote{border-color:#8fd3ff;color:#8fd3ff;margin-left:12px}
+
+.task-approve{margin-left:6px;padding:2px 8px;font:inherit;font-size:12px;border:1px solid #ffd24a;background:#2a2410;color:#ffd24a;border-radius:3px;cursor:pointer}.task-approve:disabled{opacity:.5;cursor:default}
+/* 美月の素材(2026-10-30 夜一): 基準モックの舞台(横縦 3:2)に合わせる。人物なし舞台の上に立ち絵を重ね、席の位置・大きさ・吹き出しをモックの数値に寄せる */
+.scene-wrap.smooth{aspect-ratio:3/2;width:min(100%,calc((80vh - 24px)*3/2))}
+.scene-wrap.smooth .actor .sprite{aspect-ratio:9/10;animation-name:none}
+.scene-wrap.smooth .actor{width:20%;bottom:21%}
+.scene-wrap.smooth .asahi{--x:21%!important}.scene-wrap.smooth .hinata{--x:39%!important;bottom:24%}.scene-wrap.smooth .mizuki{--x:69%!important;bottom:24%}.scene-wrap.smooth .yoichi{--x:83%!important;bottom:20%}
+/* 吹き出し: モックどおり、頭のすぐ上に、人物の幅ほどの縦長で出す。枠と名札は人物ごとの色 */
+.scene-wrap.smooth .bubble{bottom:90%;width:118%;min-width:0;max-width:none;-webkit-line-clamp:4;border:2px solid var(--c,#888);font-size:clamp(9px,.95vw,14px)}
+.actor.hinata .bubble,.actor.mizuki .bubble{bottom:90%}
+/* 表情の切り替え: 話す=楽 / 考え中・作業中=考え中 / 停止=哀(基本=喜)。差分の絵が無いときは基本の絵のまま */
+.scene-wrap.smooth .actor.talking .sprite{background-image:var(--sprite-talk,var(--sprite-image))}
+.scene-wrap.smooth .actor[data-state="thinking"] .sprite,.scene-wrap.smooth .actor[data-state="working"] .sprite{background-image:var(--sprite-think,var(--sprite-image))}
+.scene-wrap.smooth .actor[data-alive="false"] .sprite{background-image:var(--sprite-sad,var(--sprite-image))}
+/* モックにない表示を外す(潤の指示 10/30): 人物の下の名前の札、舞台の上の議題の板 */
+.scene-wrap.smooth .tag,.scene-wrap.smooth .topic-card{display:none}
+
+/* モック全体への寄せ(潤の指示 10/30): 左メニュー・メンバー・時間帯ボタン・会話ログ。左メニューと時間帯は見た目のみ(準備中) */
+.side-nav,.tod{display:none}
+@media (min-width:901px){
+body[data-view="split"] .app{max-width:none;grid-template-columns:var(--main-ratio) var(--log-ratio);grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"scene log" "scene composer"}
+body[data-view="scene"] .app{grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"scene" "composer"}
+body[data-view="history"] .app{grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"log" "composer"}
+.topbar{display:none}
+body[data-view="split"] .side-nav{grid-area:side;display:flex;flex-direction:column;gap:8px;min-height:0;padding:8px;background:var(--panel);border:2px solid var(--line);border-radius:6px}
+.nav-item{display:flex;align-items:center;gap:8px;width:100%;padding:9px 10px;background:#0d0e1a;color:var(--ink);border:1px solid var(--line);border-radius:6px;font:inherit;font-size:15px;text-align:left}
+.nav-item i{font-style:normal;width:22px;text-align:center}
+.nav-item.active{background:#3a2c1c;border-color:#d9a05a}
+.nav-item:disabled{opacity:1;cursor:default}
+.side-nav .members{margin-top:6px;padding:6px;border:1px solid var(--line);border-radius:6px;background:#0d0e1a}
+.side-nav .members small{display:block;margin-bottom:4px;color:var(--muted);font-size:11px}
+.member-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.member-grid span{display:flex;flex-direction:column;align-items:center;font-size:12px}
+.member-grid img{width:44px;height:44px;border-radius:50%;border:2px solid #d9a05a;background:#1b1830;object-fit:cover}
+.side-nav .settings-link{margin-top:auto}
+
+.tod button{padding:5px 12px;background:#0d0e1a;color:var(--muted);border:1px solid var(--line);border-radius:6px;font:inherit;font-size:13px}
+.tod button.on{color:var(--ink);border-color:#7d8cff;box-shadow:0 0 6px #5a64d8}
+body[data-view="split"] .topbar .status,body[data-view="split"] .topbar #tasks{margin-left:0}
+body[data-view="split"] .scene-wrap.smooth .bubble{width:90%}
+body[data-view="split"] .ratio-control{display:none}
+.subtitle{white-space:nowrap;letter-spacing:.04em}
+.topbar h1,.topbar .status,.topbar #clock{white-space:nowrap}
+}
+/* 設定ボタンは右上の端 */
+.topbar .gear{margin-left:auto}
+/* 表情の優先順: 停止(哀) > 発言の気分(怒・哀・喜) > 話す(楽) > 考え中・作業中 > 基本(喜) */
+.scene-wrap.smooth .actor.talking[data-mood="joy"] .sprite{background-image:var(--sprite-image)}
+.scene-wrap.smooth .actor[data-mood="anger"] .sprite{background-image:var(--sprite-anger,var(--sprite-image))}
+.scene-wrap.smooth .actor[data-mood="sad"] .sprite{background-image:var(--sprite-sad,var(--sprite-image))}
+.scene-wrap.smooth .actor[data-alive="false"] .sprite{background-image:var(--sprite-sad,var(--sprite-image))}
+/* 漫画的な記号(潤の指示 10/30): 気分を頭の横の記号でも見せる。怒=💢 / 哀=💧 / 考え中・作業中=ぐるぐる🌀 / 喜び=✨ */
+.scene-wrap.smooth .actor::after{position:absolute;top:10%;right:16%;z-index:7;font-size:clamp(11px,1.7vw,24px);line-height:1;pointer-events:none;content:"";animation:mark-pop .5s ease-out 1}
+.scene-wrap.smooth .actor[data-mood="joy"]::after{content:"✨"}
+.scene-wrap.smooth .actor[data-state="thinking"]::after,.scene-wrap.smooth .actor[data-state="working"]::after{content:"🌀";animation:mark-spin 1.6s linear infinite}
+.scene-wrap.smooth .actor[data-mood="anger"]::after{content:"💢";animation:mark-pop .5s ease-out 1}
+.scene-wrap.smooth .actor[data-mood="sad"]::after,.scene-wrap.smooth .actor[data-alive="false"]::after{content:"💧";animation:mark-pop .5s ease-out 1}
+@keyframes mark-pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes mark-spin{to{transform:rotate(360deg)}}
+/* 記号の絵の差し替え(manifest.marks)。絵があるときだけ、絵文字をやめて絵を出す */
+.scene-wrap.mark-img-anger .actor[data-mood="anger"]::after,.scene-wrap.mark-img-sad .actor[data-mood="sad"]::after,.scene-wrap.mark-img-sad .actor[data-alive="false"]::after,.scene-wrap.mark-img-joy .actor[data-mood="joy"]::after,.scene-wrap.mark-img-think .actor[data-state="thinking"]::after,.scene-wrap.mark-img-think .actor[data-state="working"]::after{content:"";width:1.5em;height:1.5em;background-position:center;background-size:contain;background-repeat:no-repeat;image-rendering:pixelated}
+.scene-wrap.mark-img-anger .actor[data-mood="anger"]::after{background-image:var(--mark-anger)}
+.scene-wrap.mark-img-sad .actor[data-mood="sad"]::after,.scene-wrap.mark-img-sad .actor[data-alive="false"]::after{background-image:var(--mark-sad)}
+.scene-wrap.mark-img-joy .actor[data-mood="joy"]::after{background-image:var(--mark-joy)}
+.scene-wrap.mark-img-think .actor[data-state="thinking"]::after,.scene-wrap.mark-img-think .actor[data-state="working"]::after{background-image:var(--mark-think)}
+/* 背景の動き(2層構造): 後ろ=横長の背景(.sky 内の .sl がゆっくり動く)、手前=背景を抜いた舞台(.stage) */
+.sky .sl{position:absolute;inset:0;opacity:0;background-repeat:no-repeat;background-size:auto 60%;filter:saturate(.92) brightness(.94);background-position:0 0;image-rendering:auto}
+
+.sleep-scene{position:absolute;inset:0;z-index:30;opacity:0;pointer-events:none;transition:opacity 4s ease;background-size:cover;background-position:center}.sleep-scene.on{opacity:1}
+
+/* 影と火の照り返し(2026-10-31 夜一): --lit は炎のコマ(3コマ)と同じ周期で 0→.5→1 と動く */
+@property --lit{syntax:"<number>";inherits:true;initial-value:.5}
+.actor{animation:litflick 4.2s ease-in-out infinite alternate}
+@keyframes litflick{from{--lit:0}to{--lit:1}}
+.actor .shadow{position:absolute;left:50%;bottom:-3%;width:96%;height:15%;z-index:-1;pointer-events:none;border-radius:50%;
+  background:radial-gradient(ellipse at center,rgba(8,5,12,.62) 0,rgba(8,5,12,.34) 45%,rgba(8,5,12,0) 72%);
+  opacity:calc(.55 + var(--lit) * .2);
+  transform:translateX(calc(-50% + var(--dir,0) * (9% + var(--lit) * 4%))) scaleX(calc(.99 + var(--lit) * .05))}
+.actor .sprite{filter:brightness(calc(.94 + var(--lit) * .08)) drop-shadow(calc(var(--dir,0) * -2px) 0 0 rgba(255,150,60,calc(.28 + var(--lit) * .16)))}
+
+/* 画像なしの演出: 火明かり(--lit は炎のコマと同じ周期)と、火の粉・星を描くキャンバス */
+.fx-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:8;pointer-events:none;image-rendering:pixelated}
+.fx-glow{position:absolute;inset:0;z-index:9;pointer-events:none;animation:litflick 4.2s ease-in-out infinite alternate;
+  background:radial-gradient(ellipse 46% 40% at 50% 68%,rgba(255,150,60,calc(.11 + var(--lit) * .05)) 0,rgba(255,120,40,0) 70%),
+             radial-gradient(ellipse 80% 75% at 50% 62%,rgba(0,0,0,0) 55%,rgba(6,4,14,.42) 100%)}
+@media (prefers-reduced-motion:reduce){.fx-glow{animation:none}}
+
+/* キャラごとの揺れ(2026-10-31 夜一): 話す・うなずく中は元の動き(bounce/nod)を優先 */
+@keyframes sway-asahi{from{transform:translateY(0) rotate(-1.4deg)}to{transform:translateY(-4.5%) rotate(1.4deg)}}
+@keyframes sway-hinata{from{transform:translateY(0) scaleY(1)}to{transform:translateY(-1%) scaleY(1.012)}}
+@keyframes sway-mizuki{from{transform:translate(-1.2%,0) rotate(-1.2deg)}to{transform:translate(1.2%,-1.8%) rotate(1.2deg)}}
+@keyframes sway-yoichi{from{transform:translateY(0) scaleY(1)}to{transform:translateY(-.4%) scaleY(1.01)}}
+.actor .sprite{transform-origin:50% 100%}
+.actor.asahi:not(.talking):not([data-state="heard"]) .sprite{animation:sway-asahi 1.7s steps(3,jump-none) infinite alternate;animation-delay:var(--d,0s)}
+.actor.hinata:not(.talking):not([data-state="heard"]) .sprite{animation:sway-hinata 4.8s ease-in-out infinite alternate;animation-delay:var(--d,0s)}
+.actor.mizuki:not(.talking):not([data-state="heard"]) .sprite{animation:sway-mizuki 5.6s ease-in-out infinite alternate;animation-delay:var(--d,0s)}
+.actor.yoichi:not(.talking):not([data-state="heard"]) .sprite{animation:sway-yoichi 6.4s ease-in-out infinite alternate;animation-delay:var(--d,0s)}
+
+/* 吹き出しの新デザイン(2026-10-31 夜一): 基準画像に合わせる。キャラごとに 枠色・形・しっぽ位置 を変える。中身は短い定型の台詞だけ */
+.scene-wrap.smooth .actor .bubble{opacity:1;position:absolute;left:50%;top:auto;bottom:100%;margin-bottom:11px;transform:translateX(-50%);width:max-content;min-width:64%;max-width:170%;
+  display:block;overflow:visible;-webkit-line-clamp:unset;white-space:nowrap;text-align:center;text-overflow:clip;
+  padding:13px 11px 6px;border:2px solid var(--c,#888);border-radius:var(--br,12px);background:var(--bg,#fff6e0);color:#2b2438;
+  font-size:clamp(11px,1.15vw,16px);font-weight:700;line-height:1.3;letter-spacing:.02em;box-shadow:0 3px 0 rgba(20,10,10,.38)}
+.scene-wrap.smooth .actor .bubble:empty{display:none}
+.scene-wrap.smooth .actor .bubble::before{content:attr(data-icon) " " attr(data-name);position:absolute;left:-7px;top:-12px;padding:0 9px;border:2px solid #2a1c1c;border-radius:12px;background:var(--c,#888);color:#fff;font-size:.78em;font-weight:800;line-height:1.35;text-shadow:0 1px 0 rgba(0,0,0,.45);white-space:nowrap}
+.scene-wrap.smooth .actor .bubble::after{content:"";position:absolute;bottom:-8px;left:var(--tl,24%);right:auto;width:11px;height:11px;background:var(--bg,#fff6e0);border-right:2px solid var(--c,#888);border-bottom:2px solid var(--c,#888);transform:rotate(45deg);animation:none}
+.actor.asahi .bubble{--c:#f08a2c;--bg:#fff3d4;--br:18px;--tl:22%}
+.actor.hinata .bubble{--c:#4f9d4a;--bg:#f3f8e6;--br:8px;--tl:18%}
+.actor.mizuki .bubble{--c:#8a63c8;--bg:#f4eefc;--br:20px;--tl:auto}
+.actor.mizuki .bubble::after{left:auto!important;right:24%}
+.actor.yoichi .bubble{--c:#3f6fd1;--bg:#e8eefb;--br:6px;--tl:auto}
+.actor.yoichi .bubble::after{left:auto!important;right:20%}
+/* 気分で枠の主張を少し変える */
+.scene-wrap.smooth .actor .bubble[data-kind="anger"]{box-shadow:0 3px 0 rgba(160,30,30,.55)}
+.scene-wrap.smooth .actor .bubble[data-kind="sad"]{filter:saturate(.7)}
+.scene-wrap.smooth .actor .bubble[data-kind="idle"],.scene-wrap.smooth .actor .bubble[data-kind="sleep"]{opacity:.82}
+
+/* キャラ別の吹き出しフォント(朝日=手書き風 / 日向=教科書体 / 美月=明朝 / 夜一=ドット) */
+.actor.asahi .bubble{font-family:"Yusei Magic","Hiragino Maru Gothic ProN",sans-serif}
+.actor.hinata .bubble{font-family:"Klee One","Yu Mincho",serif;font-weight:600}
+.actor.mizuki .bubble{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600}
+.actor.yoichi .bubble{font-family:"DotGothic16","MS Gothic",monospace}
+
+/* 会話パネルの文字もキャラ別のフォントにする(吹き出しと同じ) */
+.message[data-actor="asahi"] p,.message[data-actor="asahi"] .name{font-family:"Yusei Magic","Hiragino Maru Gothic ProN",sans-serif}
+.message[data-actor="hinata"] p,.message[data-actor="hinata"] .name{font-family:"Klee One","Yu Mincho",serif;font-weight:600}
+.message[data-actor="mizuki"] p,.message[data-actor="mizuki"] .name{font-family:"Shippori Mincho","Yu Mincho",serif;font-weight:600}
+.message[data-actor="yoichi"] p,.message[data-actor="yoichi"] .name{font-family:"DotGothic16","MS Gothic",monospace}
+/* 丸アイコン(会話パネル): 絵があるキャラだけ丸い絵にする(無いときは絵文字のまま) */
+.message .avatar.has-icon{display:inline-block;width:38px;height:38px;font-size:0;border-radius:50%;background-size:cover;background-position:center;image-rendering:auto;flex:none}
+
+/* 舞台のギミック: ランタンのレバー(見守り↔おまかせ)・火の大きさ */
+.scene-wrap .lever{position:absolute;z-index:9;left:28.3%;top:19%;width:34px;height:64px;padding:0;margin-left:-17px;border:0;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;-webkit-tap-highlight-color:transparent}
+.lever .chain{display:block;width:4px;height:30px;background:repeating-linear-gradient(#c9a24f 0 3px,#4a3516 3px 5px);border-radius:2px;transition:height .25s steps(4,jump-none)}
+.lever .knob{display:block;width:16px;height:16px;margin-top:-1px;border-radius:50%;background:#ffcf6e;border:3px solid #4a3516;box-shadow:0 0 10px 3px rgba(255,200,100,.65);transition:background .25s}
+.lever .lbl{margin-top:3px;font:700 10px/1 sans-serif;color:#fff;background:#4a3516cc;border-radius:6px;padding:2px 5px;white-space:nowrap}
+.scene-wrap[data-mode="auto"] .lever .chain{height:42px}
+.scene-wrap[data-mode="auto"] .lever .knob{background:#8ff0c0;box-shadow:0 0 12px 4px rgba(120,255,190,.7)}
+.scene-wrap[data-mode="auto"] .lever .lbl{background:#1f6b4acc}
+.scene-wrap .fire{cursor:pointer}
+.scene-wrap .fire .sheet{transform-origin:50% 100%;transition:transform .6s,filter .6s}
+.scene-wrap[data-heat="off"] .fire .sheet{transform:scale(.4);filter:brightness(.35) saturate(.4)}
+.scene-wrap[data-heat="chat"] .fire .sheet{transform:scale(.72)}
+.scene-wrap[data-heat="debate"] .fire .sheet{transform:scale(1)}
+.scene-wrap[data-heat="work"] .fire .sheet{transform:scale(1.4);filter:brightness(1.15) saturate(1.2)}
+.gimmick-tip{position:absolute;z-index:12;left:50%;top:4%;transform:translateX(-50%);background:#1b1626ee;color:#fff;border:2px solid #f6c75a;border-radius:10px;padding:4px 10px;font:700 12px/1.3 sans-serif;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.gimmick-tip.on{opacity:1}
+
+/* 共有画像(ドラッグ&ドロップ) */
+.shared-img{display:inline-block;margin:4px 6px 0 0;vertical-align:top}
+.shared-img img{max-width:min(240px,60vw);max-height:180px;border-radius:8px;border:1px solid rgba(255,255,255,.25);display:block}
+#composer.drop-ready{outline:2px dashed #ffb24a;outline-offset:2px;background:rgba(255,178,74,.12)}
+
+/* 入力欄(潤の指示 10/31): 宛先の選択は出さない(音声入力で使わない。宛先は全員のまま)。並べる表示では、会話ログの下に小さく置く */
+.composer .to{display:none}
+.composer{grid-template-columns:minmax(0,1fr) auto;padding:6px 8px;gap:8px}
+body[data-view="split"] .composer textarea{min-height:0}
+@media (max-width:900px){.composer{grid-template-columns:1fr}}
+
+/* 吹き出しの名札に丸アイコン(潤の指示 10/31): 絵文字の代わりに、名前の左へ小さな丸い絵を出す */
+.scene-wrap.smooth .actor .bubble::before{content:attr(data-name);top:-15px;padding:0 10px 0 24px;line-height:1.75;
+  background:var(--ic,none) 3px center/17px 17px no-repeat,var(--c,#888)}
+.actor.asahi .bubble{--ic:url("/assets/icon_asahi.png")}.actor.hinata .bubble{--ic:url("/assets/icon_hinata.png")}
+.actor.mizuki .bubble{--ic:url("/assets/icon_mizuki.png")}.actor.yoichi .bubble{--ic:url("/assets/icon_yoichi.png")}
+
+/* 風にそよぐ蔦・ぼんやり明滅するランタン・星と流れ星の置き場(舞台の後ろ)(2026-10-31 潤の指示) */
+.fx-canvas.fx-back{z-index:0}
+.stage .leaf{position:absolute;display:block;pointer-events:none;background-image:url(/assets/stage_green.png);background-repeat:no-repeat;image-rendering:pixelated;transform-origin:50% 0;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 50%,#000 55%,transparent 85%);mask-image:radial-gradient(ellipse at 50% 50%,#000 55%,transparent 85%);
+  animation:leaf-sway var(--sp,7s) ease-in-out infinite alternate;animation-delay:var(--dl,0s)}
+@keyframes leaf-sway{from{transform:rotate(-5deg) translateX(-1.1%)}to{transform:rotate(5.5deg) translateX(1.2%)}}
+.stage .lamp{position:absolute;display:block;width:13%;aspect-ratio:1;pointer-events:none;border-radius:50%;mix-blend-mode:screen;filter:blur(7px);
+  background:radial-gradient(circle,rgba(255,200,120,.6) 0,rgba(255,160,70,.24) 38%,transparent 70%);
+  animation:lamp-breath var(--sp,6.5s) ease-in-out infinite alternate;animation-delay:var(--dl,0s)}
+@keyframes lamp-breath{from{opacity:.2;transform:translate(-50%,-50%) scale(.88)}to{opacity:.95;transform:translate(-50%,-50%) scale(1.14)}}
+@media (prefers-reduced-motion:reduce){.stage .leaf,.stage .lamp{animation:none}}
+
+/* 大きな炎の揺らめき(小さな炎は廃止)・吹き出しのふわっと出入り(2026-10-31 潤の指示) */
+.fire .sheet,.fire .spark{display:none}
+.stage .flame{position:absolute;display:block;pointer-events:none;background-image:var(--stage-image);background-repeat:no-repeat;image-rendering:pixelated;transform-origin:50% 92%;
+  -webkit-mask-image:radial-gradient(ellipse at 50% 58%,#000 32%,transparent 72%);mask-image:radial-gradient(ellipse at 50% 58%,#000 32%,transparent 72%);
+  animation:flame-dance var(--sp,6s) ease-in-out infinite alternate;animation-delay:var(--dl,0s)}
+@keyframes flame-dance{0%{transform:scale(calc(.9*var(--hs,1)),calc(.78*var(--hs,1))) skewX(-5deg);filter:brightness(.85)}
+  35%{transform:scale(calc(1.05*var(--hs,1)),calc(1.22*var(--hs,1))) skewX(3deg);filter:brightness(1.25)}
+  70%{transform:scale(calc(.94*var(--hs,1)),calc(.88*var(--hs,1))) skewX(5deg);filter:brightness(.95)}
+  100%{transform:scale(calc(1.07*var(--hs,1)),calc(1.3*var(--hs,1))) skewX(-3deg);filter:brightness(1.3)}}
+.scene-wrap[data-heat="off"] .stage .flame{--hs:.3;opacity:.25}
+.scene-wrap[data-heat="chat"] .stage .flame{--hs:.82}
+.scene-wrap[data-heat="debate"] .stage .flame{--hs:1}
+.scene-wrap[data-heat="work"] .stage .flame{--hs:1.15}
+.stage .flame{transition:opacity .8s}
+.scene-wrap.smooth .actor .bubble{transition:opacity 1.6s ease-in-out,transform 1.6s ease-in-out}
+.scene-wrap.smooth .actor .bubble:not(.show){opacity:0!important;transform:translateX(-50%) translateY(6px)}
+.scene-wrap.smooth .actor .bubble.show{opacity:1;transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){.stage .flame{animation:none}}
+
+/* 吹き出し: 丸くやわらかい、古い童話の扉絵ふうの飾り枠(2026-10-31 潤の指示)。名前なし・色は全員そろえる */
+.scene-wrap.smooth .actor .bubble,.actor .bubble{--c:#8b5e34;--bg:#fbf0d6;--br:2.2em;
+  padding:9px 18px 9px;border:2px solid #8b5e34;border-radius:2.2em;background:radial-gradient(ellipse at 50% 35%,#fffaeb 0,#fbf0d6 70%,#f2e0b8 100%);color:#4a3320;
+  font-family:"Klee One","Yu Mincho","Hiragino Mincho ProN",serif;font-weight:600;letter-spacing:.04em;text-align:center;min-width:0;
+  box-shadow:inset 0 0 0 3px #fbf0d6,inset 0 0 0 4px #c9a266,0 3px 0 rgba(60,35,15,.35)}
+.scene-wrap.smooth .actor .bubble::before,.actor .bubble::before{content:"❦";display:block;position:absolute;left:50%;top:-11px;transform:translateX(-50%);padding:0 5px;border:0;border-radius:0;
+  background:#fbf0d6;color:#a8742f;font-size:13px;font-weight:400;line-height:1;text-shadow:none}
+.scene-wrap.smooth .actor .bubble::after,.actor .bubble::after{width:12px;height:12px;border-radius:0 0 60% 0;background:#fbf0d6;border-right:2px solid #8b5e34;border-bottom:2px solid #8b5e34}
+.actor.mizuki .bubble,.actor.yoichi .bubble,.actor.asahi .bubble,.actor.hinata .bubble{--c:#8b5e34;--bg:#fbf0d6}
+.scene-wrap.smooth .actor .bubble[data-kind="anger"],.scene-wrap.smooth .actor .bubble[data-kind="sad"]{box-shadow:inset 0 0 0 3px #fbf0d6,inset 0 0 0 4px #c9a266,0 3px 0 rgba(60,35,15,.35);filter:none}
+
+/* 焚き火の段階絵(2026-10-31): 舞台の絵の (690,620) 480x480 に重ねる。火の強さで、なめらかに切り替わる */
+.stage .fireedit{position:absolute;left:38.3333%;top:51.6667%;width:26.6667%;height:40%;pointer-events:none}
+.stage .fireedit .fl{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;opacity:0;transition:opacity 1.6s ease-in-out}
+.stage .fireedit .fl.on{opacity:1}
+.stage .fireedit .fl-4b.on{opacity:0}
+.stage .fireedit .fl-4b.on.sh{animation:fire-shimmer 3.4s ease-in-out infinite alternate}
+@keyframes fire-shimmer{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.stage .fireedit .fl-4b.on.sh{animation:none;opacity:0}}
+
+/* 額縁(9分割・火の強さごとに別の絵)と、左右の炎のスイッチ。場面だけに色味の違いを付ける */
+.scene-wrap{overflow:hidden}
+.frame{position:absolute;inset:0;z-index:20;pointer-events:none;border:0 solid transparent;border-image-slice:100 fill;border-image-repeat:stretch;image-rendering:pixelated}
+.frame-sw{position:absolute;z-index:22;top:50%;width:clamp(22px,3.2%,40px);aspect-ratio:1;padding:4px;transform:translateY(-50%);border:2px solid rgba(20,12,8,.85);border-radius:50%;background:radial-gradient(#4a2c16,#1d1008);box-shadow:0 0 8px rgba(255,150,40,.45);cursor:pointer}
+.frame-sw svg{display:block;width:100%;height:100%;image-rendering:pixelated}
+.frame-sw:hover{box-shadow:0 0 14px rgba(255,190,80,.9)}
+.frame-sw.left{left:.4%}.frame-sw.left svg{transform:rotate(-14deg)}
+.frame-sw.right{right:.4%}.frame-sw.right svg{transform:scaleX(-1) rotate(-14deg)}
+.frame-sw i{display:none}
+.scene-wrap[data-filter="auto"][data-heat="off"] .sky,.scene-wrap[data-filter="auto"][data-heat="off"] .stage{filter:brightness(.78) saturate(.8) hue-rotate(-8deg)}
+.scene-wrap[data-filter="auto"][data-heat="debate"] .sky,.scene-wrap[data-filter="auto"][data-heat="debate"] .stage{filter:sepia(.22) saturate(1.12)}
+.scene-wrap[data-filter="auto"][data-heat="work"] .sky,.scene-wrap[data-filter="auto"][data-heat="work"] .stage{filter:saturate(1.2) contrast(1.06)}
+
+.scene-wrap[data-filter="sepia"] .sky,.scene-wrap[data-filter="sepia"] .stage{filter:sepia(.55) saturate(1.1) brightness(.98)}
+.scene-wrap[data-filter="blue"] .sky,.scene-wrap[data-filter="blue"] .stage{filter:hue-rotate(185deg) saturate(.9) brightness(.92)}
+.scene-wrap[data-filter="sparkle"] .sky,.scene-wrap[data-filter="sparkle"] .stage{filter:saturate(1.35) brightness(1.1) contrast(1.05)}
+.scene-wrap[data-filter="dark"] .sky,.scene-wrap[data-filter="dark"] .stage{filter:brightness(.6) saturate(.85)}
+.scene-wrap[data-filter="sparkle"]::after{content:"";position:absolute;inset:0;z-index:19;pointer-events:none;background:radial-gradient(circle,rgba(255,250,220,.9) 0 1.5px,transparent 2px) 0 0/46px 46px,radial-gradient(circle,rgba(255,230,160,.8) 0 1px,transparent 1.6px) 23px 23px/46px 46px;animation:sparkle-twinkle 2.6s steps(2,jump-none) infinite;mix-blend-mode:screen}
+@keyframes sparkle-twinkle{50%{opacity:.35}}
+.scene-wrap[data-sw="0"] .frame-sw{display:none}
+/* 画面の外の筆とインク壺と、設定の羊皮紙 */
+.look-pen{position:absolute;z-index:30;top:8px;right:8px;width:34px;height:34px;padding:2px;border:2px solid #3a2a1c;border-radius:6px;background:#2b1d12;cursor:pointer;box-shadow:0 2px 0 #120a05}
+.look-pen svg{display:block;width:100%;height:100%;image-rendering:pixelated}
+.look-pen:hover{background:#4a3220}
+.look-panel{position:absolute;z-index:31;top:48px;right:8px;width:min(340px,94%);padding:10px 12px;border:3px solid #5b3e2a;border-radius:8px;background:#f3e6c4;color:#2b2438;font-size:13px;box-shadow:0 6px 0 rgba(0,0,0,.35)}
+.look-panel[hidden]{display:none}
+.lp-title{font-weight:700;margin-bottom:6px}
+.lp-row{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:6px 0}
+.lp-row b{width:100%;font-size:12px;color:#6b4a2a}
+.lp-row button{padding:3px 8px;border:1px solid #8a6a44;border-radius:12px;background:#fff8e6;color:#2b2438;cursor:pointer;font-size:12px}
+.lp-row button.on{background:#c9863a;color:#fff;border-color:#7a4a1a}
+.lp-note{margin-top:6px;font-size:11px;color:#6b5a48}
+
+/* 机の小物(美月が元絵を編集して作った絵から切り出した層): 舞台の絵(1800x1200)の座標 (215,975) 145x160 */
+.desk-props{position:absolute;left:11.944%;top:81.25%;width:8.0556%;height:13.333%;display:none;pointer-events:none}
+.scene-wrap[data-props="1"] .desk-props{display:block}
+
+/* 額縁は舞台の外側(host)に置く。位置・大きさはscene.jsが決める */
+.scene-area>.frame{position:absolute;inset:auto;z-index:20;left:0;top:0}
+.scene-area>.frame[hidden]{display:none}
+.scene-area>.frame-sw{position:absolute;z-index:22;top:0;left:0;width:28px;height:28px;aspect-ratio:auto;transform:none}
+.scene-area.sw-off>.frame-sw{display:none}
+.look-pen{opacity:.6}.look-pen:hover{opacity:1}
+/* 机の小物: マウスを乗せると、少し浮く */
+.desk-props{pointer-events:auto;cursor:pointer;transition:transform .25s ease,filter .25s ease}
+.desk-props:hover{transform:translateY(-4%) scale(1.05);filter:drop-shadow(0 5px 3px rgba(0,0,0,.4)) drop-shadow(0 0 6px rgba(255,200,110,.55)) brightness(1.1)}   /* 分かる程度に、ふわっと浮いて少し明るく(大げさにしない) */
+
+/* 壺(潤の思いつきメモ)。筆の左隣。仮の絵 */
+.tsubo-btn{position:absolute;z-index:30;top:8px;right:52px;width:34px;height:34px;padding:2px;border:2px solid #3a2a1c;border-radius:6px;background:#2b1d12;cursor:pointer;box-shadow:0 2px 0 #120a05;opacity:.6}
+.tsubo-btn svg{display:block;width:100%;height:100%;image-rendering:pixelated}
+.tsubo-btn:hover{background:#4a3220;opacity:1}
+.tsubo-panel{position:absolute;z-index:31;top:48px;right:8px;width:min(380px,94%);padding:10px 12px;border:3px solid #5b3e2a;border-radius:8px;background:#f3e6c4;color:#2b2438;font-size:13px;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+.tsubo-panel[hidden]{display:none}
+.tsubo-log{margin:6px 0;max-height:34vh;overflow:auto;white-space:pre-wrap;word-break:break-all;font:12px/1.5 inherit;background:#fff8e6;border:1px solid #8a6a44;border-radius:6px;padding:6px}
+.tsubo-in{width:100%;box-sizing:border-box;border:1px solid #8a6a44;border-radius:6px;padding:6px;font:inherit;background:#fffdf4;color:#2b2438;resize:vertical}
+.tsubo-row{display:flex;align-items:center;gap:8px;margin-top:6px}
+.tsubo-send{padding:4px 12px;border:1px solid #7a4a1a;border-radius:12px;background:#c9863a;color:#fff;cursor:pointer;font-size:12px}
+.tsubo-msg{font-size:11px;color:#6b5a48}
+
+.older-btn{display:block;width:100%;margin:0 0 8px;padding:6px;background:#0d0e1a;color:var(--muted);border:1px dashed var(--line);border-radius:6px;font:inherit;font-size:12px;cursor:pointer}.older-btn:hover{color:var(--ink)}
+
+/* 許可ボタン: 発言の下(許可を求めた本人の発言)と、流れて見えないときの帯(会話ログのすぐ上)。見守り(ランタン)のレバーは見た目だけ外す(機能は残す) */
+.msg-approve{display:inline-block;margin:6px 0 2px;padding:4px 12px;font:inherit;font-size:13px;font-weight:700;border:2px solid #ffd24a;background:#3a2c10;color:#ffe08a;border-radius:6px;cursor:pointer}.msg-approve:hover{background:#5a4416}.msg-approve:disabled{opacity:.5;cursor:default}
+.pending-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:6px 14px;background:#2a2410;border-bottom:2px solid #ffd24a;color:#ffe08a;font-size:13px}.pending-bar[hidden]{display:none}.pending-bar .msg-approve{margin:0}
+.scene-wrap .lever{display:none!important}
+
+.msgno{font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted);opacity:.8;cursor:pointer;padding:0 4px;border-radius:3px}.msgno:hover{opacity:1;background:#1a1c2e}
+.msgref{color:#8fb8ff;text-decoration:underline dotted;cursor:pointer}.msgref:hover{color:#bcd6ff}
+.ref-pop{position:fixed;z-index:60;max-width:min(420px,calc(100vw - 16px));max-height:50vh;overflow:auto;background:#12131f;border:1px solid #4a4f7a;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.5);padding:8px 10px;font-size:13px;line-height:1.55}
+.ref-head{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;margin-bottom:4px}.ref-head time{margin-left:auto}.ref-close{background:none;border:0;color:var(--muted);font-size:16px;cursor:pointer;padding:0 4px}
+.ref-body{white-space:pre-wrap;word-break:break-word}
+.message.ref-flash{outline:2px solid #ffd24a;outline-offset:2px;transition:outline-color .3s}
+
+/* 思い出アルバムの本(机の上)。押すと /album が別タブで開く。位置は舞台の絵の座標(%) */
+.album-book{position:absolute;left:78%;top:83.5%;width:7%;height:auto;display:none;cursor:pointer;image-rendering:pixelated;transition:transform .25s ease,filter .25s ease}
+.scene-wrap[data-props="1"] .album-book{display:block}
+.album-book:hover{transform:translateY(-4%) scale(1.05);filter:drop-shadow(0 5px 3px rgba(0,0,0,.4)) drop-shadow(0 0 6px rgba(255,200,110,.55)) brightness(1.1)}
+
+/* 宛先ボタン(右側に縦8人)と、返信中の目印(会話ログのアイコンを押す) */
+.scene-area{position:relative;padding-right:74px}
+.target-rail{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:5px;z-index:30}
+.target-rail .sep{width:32px;height:2px;background:#3a4270;margin:2px 0;border-radius:1px}
+.target-rail button{width:min(50px,6.2vh);height:min(50px,6.2vh);border-radius:50%;border:2px solid #3a4270;background:#0e1124 center/cover no-repeat;color:#fff;cursor:pointer;padding:0;display:grid;place-items:center;font-size:min(22px,2.9vh);opacity:.72;transition:opacity .15s,box-shadow .15s}
+.target-rail button.echo{border-style:dashed;background:linear-gradient(160deg,#1a2147,#0e1124)}
+.target-rail button:hover{opacity:1}
+.target-rail button.auto{opacity:1;border-color:#6fa8ff}
+.target-rail button[aria-pressed="true"]{opacity:1;border-color:#ffb347;box-shadow:0 0 0 2px rgba(255,179,71,.55),0 0 12px rgba(255,179,71,.7)}
+.message.replying{outline:2px solid #ffb347;outline-offset:-2px;background:rgba(255,179,71,.08)}
+.reply-flag{background:#ffb347;color:#1b1204;border-radius:10px;padding:0 8px;font-size:11px;font-weight:700;margin-right:4px}
+@media (max-width:900px){.scene-area{padding-right:2px}.target-rail{position:static;transform:none;flex-direction:row;flex-wrap:wrap;justify-content:center;margin:6px 0}.target-rail .sep{width:2px;height:28px}}
+
+#to-chips{font-size:12px;font-weight:700;padding:2px 8px;border-radius:8px 8px 0 0;background:rgba(111,168,255,.14);color:#9cc2ff}
+#to-chips.picked{background:rgba(255,179,71,.22);color:#ffc678}
+
+.target-rail .grp{width:62px;height:auto;border-radius:10px;padding:3px 0;font-size:11px;font-weight:700;background:#1a2147;opacity:.8}
+.target-rail .grp[aria-pressed="true"]{opacity:1;border-color:#ffb347;box-shadow:0 0 0 2px rgba(255,179,71,.55)}
+/* 入力欄: ふだんは小さく、押すと広がる(潤は基本ここに打たない) */
+.composer{padding:4px 8px}
+.composer textarea{min-height:0!important;height:34px;transition:height .15s}
+.composer:focus-within textarea{height:96px}
+
+.target-rail .grp{white-space:nowrap;font-size:10px;width:68px;letter-spacing:-.5px}
+
+.target-rail .gap{display:block;height:18px}
+.target-rail .act{opacity:1;border-style:solid}
+
+.choice-bar{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+.choice-bar button{background:#ffb347;color:#1b1204;border:0;border-radius:14px;padding:5px 14px;font-weight:700;cursor:pointer}
+.choice-bar button:disabled{opacity:.45;cursor:default}
+.choice-bar button.chosen{opacity:1;outline:2px solid #fff}
+
+.chain-ctl{display:inline-flex;align-items:center;gap:6px;margin-right:8px;font-size:12px}
+.chain-ctl button{background:#1a2147;color:#fff;border:1px solid #3a4270;border-radius:12px;padding:2px 10px;cursor:pointer;font-size:12px}
+.chain-ctl #chain-stop.on{background:#e8542f;border-color:#ff8a5c;font-weight:700}
+.chain-ctl .lim{display:inline-flex;align-items:center;gap:4px}
+.chain-ctl .lim button{padding:0 7px}
+.chain-ctl #lim-text{min-width:74px;text-align:center}
+.chain-ctl #lim-text.full{color:#ffb347}
+
+.log-head .chain-ctl{margin:0 8px 0 auto}
+
+/* 司会(朝日)ボタン: 絵だけ+王冠。連鎖の止めるは記号だけで大きく。連絡方式は宛先の列の一番下 */
+.target-rail .mod{position:relative;opacity:.55;border-style:solid}
+.target-rail .mod::after{content:"👑";position:absolute;top:-9px;right:-5px;font-size:15px;filter:drop-shadow(0 1px 2px #000)}
+.target-rail .mod[aria-pressed="true"]{opacity:1;border-color:#ffd24a;box-shadow:0 0 0 2px rgba(255,210,74,.6),0 0 12px rgba(255,210,74,.8)}
+.target-rail .route.on{border-color:#6fa8ff;box-shadow:0 0 0 2px rgba(111,168,255,.55);color:#cfe3ff}
+.chain-ctl #chain-stop{font-size:16px;padding:0 10px;line-height:22px}
+.chain-ctl #chain-stop.on{font-size:16px}

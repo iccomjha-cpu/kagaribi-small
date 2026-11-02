@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>篝火 スマホ</title>
+<style>
+:root{--bg:#14101c;--panel:#1d1829;--line:#332a47;--text:#efe9f7;--sub:#a89cc0;--fire:#ff9a4d;--ok:#8fe3a0;--warn:#ffd24a;--jun:#ff9a4d;--ai:#8fb4ff}
+@media (prefers-color-scheme:light){:root{--bg:#f6f1ea;--panel:#fffaf3;--line:#e3d8c8;--text:#2a2230;--sub:#6e6479;--fire:#c9561a;--ok:#2f7d46;--warn:#8a6500;--jun:#c9561a;--ai:#2c5bb5}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{margin:0;font-size:17px;letter-spacing:.08em}
+#state{margin-left:auto;font-size:13px;color:var(--sub)}
+#state.ok{color:var(--ok)}
+#pending{padding:0 16px}
+.card{margin:10px 0;padding:12px 14px;border:1px solid var(--warn);border-radius:10px;background:var(--panel)}
+.card p{margin:0 0 10px;font-size:15px;overflow-wrap:anywhere}
+.card b{color:var(--warn)}
+.card button{width:100%;min-height:48px;font:inherit;font-weight:600;border:0;border-radius:8px;background:var(--warn);color:#1a1405;cursor:pointer}
+.card button:disabled{opacity:.5}
+#log{flex:1;overflow-y:auto;padding:8px 16px;-webkit-overflow-scrolling:touch}
+.msg{margin:10px 0;padding:10px 12px;border-radius:10px;background:var(--panel);border-left:3px solid var(--ai);overflow-wrap:anywhere}
+.msg.jun{border-left-color:var(--jun)}
+.meta{font-size:12px;color:var(--sub);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.meta img{width:28px;height:28px;border-radius:50%;flex:none}
+.msg div.body{white-space:pre-wrap}
+form{display:flex;gap:8px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--panel)}
+select,textarea,button.send,input{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px}
+select{width:5.5em;padding:0 6px}
+textarea{flex:1;min-height:48px;max-height:120px;padding:10px;resize:none}
+button.send{min-width:64px;min-height:48px;border:0;background:var(--fire);color:#1a0d02;font-weight:700}
+#gate{padding:24px 16px}
+#gate input{width:100%;min-height:48px;padding:0 12px;margin:12px 0}
+#gate button{width:100%;min-height:48px;font:inherit;font-weight:700;border:0;border-radius:8px;background:var(--fire);color:#1a0d02}
+#gate p{color:var(--sub);font-size:14px}
+#stop-btn{font:inherit;font-size:16px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;min-width:40px;min-height:40px}
+#stop-btn.on{background:var(--warn);color:#1a1405}
+#menu-btn{font:inherit;font-size:14px;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:6px 12px;min-height:40px}
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;z-index:10}
+#sheet .box{width:100%;max-height:80%;overflow-y:auto;background:var(--panel);border-radius:16px 16px 0 0;padding:14px 16px calc(14px + env(safe-area-inset-bottom))}
+#sheet h2{margin:12px 0 6px;font-size:13px;color:var(--sub);font-weight:600}
+#sheet h2:first-child{margin-top:0}
+.opt{display:flex;width:100%;align-items:center;gap:8px;min-height:48px;padding:0 12px;margin:4px 0;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:10px;text-align:left}
+.opt.on{border-color:var(--fire);background:color-mix(in srgb,var(--fire) 18%,var(--bg))}
+.opt img{width:28px;height:28px;border-radius:50%}
+.sw{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:6px 12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;font-size:14px}
+.sw input{width:24px;height:24px}
+.msg a{color:var(--fire);font-weight:600}
+#err{margin:0;padding:6px 16px;font-size:14px;color:#fff;background:#b42318}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><h1>🔥 篝火</h1><span id="state">接続中…</span><button id="stop-btn" type="button" title="ノアズの会話の連鎖を止める/再開" aria-label="会話の連鎖を止める">⏸</button><button id="menu-btn" type="button" aria-haspopup="dialog">宛先: 全員 ▾</button></header>
+<div id="sheet" hidden role="dialog" aria-label="宛先とスマホモード"><div class="box" id="sheet-box"></div></div>
+
+<section id="gate" hidden>
+  <p>この端末は、潤のTailscaleの端末として確認できませんでした。予備の合言葉を入れてください(この端末に保存して、次からは聞きません)。</p>
+  <input id="token" type="password" autocomplete="off" autocapitalize="off" placeholder="xxxx-xxxx-xxxx">
+  <button id="save" type="button">保存して開く</button>
+  <p id="gate-note"></p>
+</section>
+
+<main id="app" hidden style="display:flex;flex-direction:column;flex:1;min-height:0">
+  <section id="pending" aria-live="polite"></section>
+  <section id="log" aria-live="polite"></section>
+  <p id="err" hidden role="alert"></p>
+  <form id="composer">
+    <select id="target" aria-label="宛先" hidden><option value="">全員</option><option value="asahi">朝日</option><option value="hinata">日向</option><option value="mizuki">美月</option><option value="yoichi">夜一</option><option value="sirius">シリウス</option><option value="erisia">エリシア</option><option value="astel">アステル</option><option value="soleil">ソレイユ</option><option value="soleil,astel,erisia,sirius">エコーズ全員</option><option value="hinata,mizuki,yoichi">ノアズ(日向・美月・夜一)</option></select>
+    <textarea id="body" rows="1" placeholder="篝火に話しかける(送信者: 潤)"></textarea>
+    <button class="send" type="submit">送る</button>
+  </form>
+</main>
+
+<script>
+const NAMES = {jun:"潤", asahi:"朝日", hinata:"日向", mizuki:"美月", yoichi:"夜一", sirius:"シリウス", erisia:"エリシア", astel:"アステル", soleil:"ソレイユ"};
+const store = { get(k){ try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k,v){ try { localStorage.setItem(k,v); } catch (e) {} } };
+const $ = id => document.getElementById(id);
+let token = store.get("kagaribi.token") || "", lastId = 0, started = false;
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const jst = v => new Intl.DateTimeFormat("ja-JP", {timeZone:"Asia/Tokyo", hour:"2-digit", minute:"2-digit"}).format(new Date(v));
+
+async function call(path, body) {
+  const res = await fetch(path, { method: body ? "POST" : "GET", cache: "no-store",
+    headers: { "X-Kagaribi-Token": token, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  if (res.status === 401 || res.status === 429) { const e = new Error(res.status === 429 ? "しばらく止まっています" : "合言葉が違います"); e.auth = true; throw e; }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "エラー");
+  return data;
+}
+
+function setState(text, ok) { const el = $("state"); el.textContent = text; el.className = ok ? "ok" : ""; }
+
+const linkify = t => t.replace(/(^|[^A-Za-z0-9_\/])(\/f\/[A-Za-z0-9_.\-぀-ヿ一-鿿]+\.(?:pdf|html|htm|png|jpg|jpeg|gif|txt|md|csv))/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+const ICONS = ['asahi', 'hinata', 'mizuki', 'yoichi', 'jun'];
+function addMessages(list) {
+  const log = $("log"), stick = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+  for (const m of list) {
+    if (m.id <= lastId) continue;
+    lastId = m.id;
+    const el = document.createElement("div");
+    el.className = "msg" + (m.sender === "jun" ? " jun" : "");
+    el.innerHTML = '<div class="meta">' + (ICONS.indexOf(m.sender) >= 0 ? '<img src="/icons/' + m.sender + '.png" alt="">' : "") + '<span>' + esc(NAMES[m.sender] || m.sender) + " → " + esc(m.target ? (NAMES[m.target] || m.target) : "みんな") + " ・ " + jst(m.createdAt) + ' ・ #' + m.id + '</span></div><div class="body">' + linkify(esc(m.body)) + "</div>";
+    log.appendChild(el);
+  }
+  if (stick) log.scrollTop = log.scrollHeight;
+}
+
+async function pollMessages() {
+  const data = await call(lastId ? "/api/messages?after=" + lastId + "&limit=100" : "/api/messages?tail=40");
+  addMessages(data.messages);
+}
+
+async function pollTasks() {
+  const data = await call("/api/tasks?open=1");
+  const box = $("pending");
+  const waiting = data.tasks.filter(t => t.status === "accepted" || t.status === "pending_ack");
+  box.innerHTML = "";
+  for (const t of waiting) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = "<p><b>T" + t.id + " " + (t.status === "accepted" ? "許可待ち" : "受付待ち") + "</b>(" + esc(NAMES[t.to] || t.to) + ")<br>" + esc(t.summary) + "</p>";
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = "T" + t.id + " を許可する";
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      try { await call("/api/tasks/approve", { id: t.id }); b.textContent = "許可しました"; } catch (e) { b.disabled = false; setState(e.message, false); }
+    });
+    card.appendChild(b);
+    box.appendChild(card);
+  }
+}
+
+let stopped = false;
+async function pollChain() { const c = await call("/api/chain"); stopped = !!c.stopped; $("stop-btn").textContent = stopped ? "▶" : "⏸"; $("stop-btn").classList.toggle("on", stopped); $("stop-btn").setAttribute("aria-label", stopped ? "会話の連鎖を再開する" : "会話の連鎖を止める"); }
+async function tick() {
+  try { await pollMessages(); await pollTasks(); await pollChain().catch(() => {}); setState("● 接続中", true); }
+  catch (e) { if (e.auth) { showGate(e.message); return; } setState("再接続中…", false); }
+  setTimeout(tick, 3000);
+}
+
+function showGate(note) {
+  started = false; $("app").hidden = true; $("gate").hidden = false; $("gate-note").textContent = note || "";
+  setState("未接続", false);
+}
+
+function start() {
+  $("gate").hidden = true; $("app").hidden = false;
+  if (!started) { started = true; tick(); }
+}
+
+$("save").addEventListener("click", () => { token = $("token").value.replace(/[\s-]/g, "").toLowerCase(); if (!token) return; store.set("kagaribi.token", token); try { document.cookie = "kagaribi_token=" + encodeURIComponent(token) + "; path=/; max-age=31536000; SameSite=Strict"; } catch (e) {} start(); });
+$("composer").addEventListener("submit", async e => {
+  e.preventDefault();
+  const body = $("body").value.trim(); if (!body) return;
+  const btn = e.target.querySelector(".send"); btn.disabled = true; $("err").hidden = true;
+  try { await call("/api/messages", { body, target: $("target").value || null, phoneMode }); $("body").value = ""; await pollMessages(); }
+  catch (err) { if (err.auth) showGate(err.message); else { $("err").textContent = "送れませんでした: " + err.message + "(入力は残してあります)"; $("err").hidden = false; } }
+  finally { btn.disabled = false; }
+});
+const PEOPLE = [["asahi", "朝日"], ["hinata", "日向"], ["mizuki", "美月"], ["yoichi", "夜一"], ["sirius", "シリウス"], ["erisia", "エリシア"], ["astel", "アステル"], ["soleil", "ソレイユ"]];
+const SETS = [["エコーズ全員", ["soleil", "astel", "erisia", "sirius"]], ["ノアズ全員", ["hinata", "mizuki", "yoichi"]]];
+let phoneMode = store.get("kagaribi.phoneMode") !== "off";
+let picked = [];                                   // 空=全員
+const nameOf = v => (PEOPLE.find(p => p[0] === v) || [v, v])[1];
+function sync() { $("target").innerHTML = '<option value="' + picked.join(",") + '"></option>'; $("menu-btn").textContent = "宛先: " + (picked.length ? picked.map(nameOf).join("・") : "全員") + " ▾"; }
+function openSheet() {
+  const box = $("sheet-box"); box.innerHTML = "<h2>宛先(いくつでも選べる。選ばなければ全員)</h2>";
+  const add = (label, on, fn, icon) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "opt" + (on ? " on" : "");
+    b.innerHTML = (icon ? '<img src="/icons/' + icon + '.png" alt="">' : "") + esc((on ? "✓ " : "") + label);
+    b.addEventListener("click", () => { fn(); sync(); openSheet(); }); box.appendChild(b);
+  };
+  add("全員", picked.length === 0, () => { picked = []; });
+  for (const [v, name] of PEOPLE) add(name, picked.includes(v), () => { picked = picked.includes(v) ? picked.filter(x => x !== v) : picked.concat(v); }, ICONS.indexOf(v) >= 0 ? v : "");
+  for (const [name, list] of SETS) add(name + "(まとめて)", list.every(x => picked.includes(x)), () => { picked = list.every(x => picked.includes(x)) ? picked.filter(x => !list.includes(x)) : picked.concat(list.filter(x => !picked.includes(x))); });
+  const done = document.createElement("button"); done.type = "button"; done.className = "opt"; done.textContent = "閉じる"; done.addEventListener("click", () => { $("sheet").hidden = true; }); box.appendChild(done);
+  const h = document.createElement("h2"); h.textContent = "スマホモード"; box.appendChild(h);
+  const sw = document.createElement("label"); sw.className = "sw";
+  sw.innerHTML = '<span>篝火だけ見る前提(全員通達)+ 成果物はスマホで開ける形で受け取る</span><input type="checkbox"' + (phoneMode ? " checked" : "") + ">";
+  sw.querySelector("input").addEventListener("change", e => { phoneMode = e.target.checked; store.set("kagaribi.phoneMode", phoneMode ? "on" : "off"); });
+  box.appendChild(sw);
+  $("sheet").hidden = false;
+}
+$("menu-btn").addEventListener("click", openSheet);
+$("stop-btn").addEventListener("click", async () => { try { await call("/api/chain", { stop: !stopped }); await pollChain(); } catch (e) { setState(e.message, false); } });
+$("sheet").addEventListener("click", e => { if (e.target === $("sheet")) $("sheet").hidden = true; });
+sync();
+start();   // まず合言葉なしで試す(潤のTailscale端末なら通る)。断られたときだけ、合言葉の入力を出す
+</script>
+</body>
+</html>
